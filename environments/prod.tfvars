@@ -1,2 +1,3 @@
-environment = "prod"
-location    = "westeurope"
+environment            = "prod"
+location               = "westeurope"
+deploy_storage_account = true
