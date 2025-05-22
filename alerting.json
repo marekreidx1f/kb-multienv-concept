@@ -1,0 +1,238 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "naas-api-PROD",
+    "version": "2025-01-16T12:42:03Z"
+  },
+  "servers": [
+    {
+      "url": "https://ip8ajrp2ri.execute-api.eu-central-1.amazonaws.com/{basePath}",
+      "variables": {
+        "basePath": {
+          "default": "PROD"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/naas-PROD": {
+      "post": {
+        "description": "Searches for a suitable notification based on the request body and sends out an alarm if one is found.",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": true,
+            "description": "Success",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "account",
+            "in": "query",
+            "required": true,
+            "description": "The unique account number of the customer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "criticality",
+            "in": "query",
+            "required": true,
+            "description": "The criticality of the alert. Low - Medium - High - Critical",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timestamp",
+            "in": "query",
+            "required": true,
+            "description": "The timestamp in the ISO_8601 format. For example: '2024-03-24T12:00:00Z' for UTC",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "summary",
+            "in": "query",
+            "required": true,
+            "description": "The summary of the alert",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "message",
+            "in": "query",
+            "required": true,
+            "description": "The message of the alert",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notificationType",
+            "in": "query",
+            "required": true,
+            "description": "The notification type of the alert. This can either be 'Problem' or 'Recovery'",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostRequestModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "*Success*\n- Request successfully processed\n- No suitable notification found"
+          },
+          "400": {
+            "description": "*Bad Request*\n- The account number is invalid\n- The request contains a field that does not exist\n- The request contains a value for a field where the format is wrong\n- The request contains a value for a string field which is too long"
+          },
+          "401": {
+            "description": "*Unauthorized*\n- The provided apikey is invalid or does not have the required permissions"
+          },
+          "403": {
+            "description": "*Forbidden*\n- The api key is invalid"
+          },
+          "500": {
+            "description": "*Internal server error*\n- Error occurred on the server"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/heartbeat": {
+      "post": {
+        "description": "Used to check if the monitoring tool CheckMK is up and running. Every customer has to have a specific lambda function which can be identified by the unique id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The API is reachable and functioning."
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/grafana": {
+      "post": {
+        "description": "Grafana is a special case that does not allow us to create custom API requests. We transform the Grafana request into the required format using a mapping template in the API Gateway. For a more detailed description, please refer to the NaaS documentation or consult NaaS colleagues.",
+        "parameters": [
+          {
+            "name": "account",
+            "in": "query",
+            "required": true,
+            "description": "The unique account number of the customer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "criticality",
+            "in": "query",
+            "required": true,
+            "description": "The criticality of the alert. Low - Medium - High - Critical",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notificationType",
+            "in": "query",
+            "required": true,
+            "description": "The notification type of the alert. This can either be 'Problem' or 'Recovery'",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "*Success*"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Empty": {
+        "title": "Empty Schema",
+        "type": "object"
+      },
+      "PostRequestModel": {
+        "title": "PostRequestModel",
+        "required": [
+          "account",
+          "criticality",
+          "message",
+          "notificationType",
+          "summary",
+          "timestamp"
+        ],
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string",
+            "example": "1"
+          },
+          "criticality": {
+            "type": "string",
+            "example": "Low"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2000-01-01 12:00:00"
+          },
+          "summary": {
+            "type": "string",
+            "example": "This is a test summary"
+          },
+          "message": {
+            "type": "string",
+            "example": "This is a test message"
+          },
+          "notificationType": {
+            "type": "string",
+            "example": "Problem"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "api_key": {
+        "type": "apiKey",
+        "name": "x-api-key",
+        "in": "header"
+      }
+    }
+  }
+}

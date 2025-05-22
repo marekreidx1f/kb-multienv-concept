@@ -1,0 +1,73 @@
+# GitHub Actions Workflow for Terraform CI/CD Pipeline
+# NB: This does not include any test stages - for eg of workflow with environments only!
+
+# Trigger this workflow on pushes to specific branches and files
+on:
+  push:
+    # Only run when changes are made in the terraform/ directory
+    paths:
+      - "terraform/**"
+    # Limit to the environment branches we care about
+    branches:
+      - dev
+      - test
+      - preprod
+      - prod
+
+jobs:
+  terraform:
+    # The job name that will show in GitHub Actions UI
+    name: "Terraform on ${{ github.ref_name }}"
+
+    # Run on the latest Ubuntu environment
+    runs-on: ubuntu-latest
+
+    # Set the default working directory to the terraform folder in the repo
+    defaults:
+      run:
+        working-directory: terraform
+
+    # Environment variables required by the Azure provider in Terraform
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    steps:
+      # Step 1: Checkout the repository so we can work with its contents
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Step 2: Setup Terraform CLI in the GitHub Actions runner
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      # Step 3: Initialize the Terraform backend
+      # The backend config is chosen dynamically based on the branch name (environment)
+      - name: Terraform Init
+        run: |
+          terraform init -reconfigure -backend-config="backend/${{ github.ref_name }}.backend"
+
+      # Step 4: Check Terraform file formatting
+      # Ensures code is clean and consistent; fails if formatting is wrong
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # Step 5: Validate the Terraform configuration
+      # Checks for syntax or semantic issues before applying
+      - name: Terraform Validate
+        run: terraform validate
+
+      # Step 6: Generate an execution plan for the current environment
+      # Uses the .tfvars file specific to the current branch/environment
+      - name: Terraform Plan
+        run: terraform plan -var-file="environments/${{ github.ref_name }}.tfvars"
+
+      # Step 7: Apply changes to the environment
+      # This step is only executed for the "dev" branch to avoid accidental changes in prod-like environments
+      - name: Terraform Apply (Dev Only)
+        if: github.ref_name == 'dev'
+        run: terraform apply -auto-approve -var-file="environments/dev.tfvars"
